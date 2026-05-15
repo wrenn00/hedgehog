@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Hedgehog Stack</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 <style>
@@ -20,9 +20,11 @@
     justify-content: center;
     overflow: hidden;
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* ── 점수 ──────────────────────────────────────────────── */
+  /* ── 점수 영역 ─────────────────────────────────────────── */
   #score-area {
     display: flex;
     flex-direction: column;
@@ -31,18 +33,20 @@
     margin-bottom: 14px;
   }
   #score {
-    font-size: 60px;
+    font-size: 72px;
     font-weight: 700;
     letter-spacing: -3px;
     color: #2C2C2C;
     line-height: 1;
-    transition: transform 0.1s;
+    /* 팝 효과: spring easing */
+    transition: transform 0.2s cubic-bezier(0.36, 1.56, 0.64, 1);
   }
-  #score.pop { transform: scale(1.18); }
+  #score.pop { transform: scale(1.2); }
   #best-score {
-    font-size: 13px;
-    color: #AAAAAA;
-    letter-spacing: 0.3px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #888888;
+    letter-spacing: 0.5px;
   }
 
   /* ── 캔버스 래퍼 ───────────────────────────────────────── */
@@ -55,7 +59,9 @@
     cursor: crosshair;
     flex-shrink: 0;
     overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
   }
+  /* Matter.js canvas */
   #canvas-wrapper canvas {
     display: block;
     position: absolute;
@@ -63,7 +69,7 @@
     width: 100% !important;
     height: 100% !important;
   }
-  /* overlay: 고슴도치 + 가이드라인 */
+  /* 커스텀 렌더 overlay */
   #overlay {
     position: absolute;
     top: 0; left: 0;
@@ -73,59 +79,95 @@
     z-index: 10;
   }
 
-  /* ── 힌트 ──────────────────────────────────────────────── */
-  #hint {
-    margin-top: 12px;
-    font-size: 12px;
-    color: #CCCCCC;
-    letter-spacing: 0.2px;
-  }
-
-  /* ── 게임오버 모달 ─────────────────────────────────────── */
-  #modal {
-    display: none;
+  /* ── 공용 패널 (시작화면 / 게임오버) ──────────────────── */
+  .panel {
     position: absolute;
     top: 0; left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255,255,255,0.95);
-    z-index: 100;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    flex-direction: column;
-    gap: 12px;
-    border-radius: inherit;
+    gap: 10px;
+    z-index: 30;
+    /* 기본: 투명 + 클릭 무시 */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
   }
-  #modal.show { display: flex; }
+  .panel.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ── 시작 화면 ─────────────────────────────────────────── */
+  #start-screen { background: rgba(250,250,250,0.96); gap: 8px; }
+
+  #start-title {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    color: #2C2C2C;
+    margin-bottom: 4px;
+  }
+  #start-sub {
+    font-size: 14px;
+    color: #AAAAAA;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  #start-best {
+    font-size: 13px;
+    color: #CCCCCC;
+    letter-spacing: 0.5px;
+    margin-top: 10px;
+  }
+
+  /* ── 게임오버 ──────────────────────────────────────────── */
+  #modal { background: rgba(255,255,255,0.96); gap: 10px; }
+
   #modal-title {
     font-size: 28px;
     font-weight: 700;
-    letter-spacing: -1px;
+    letter-spacing: 1px;
     color: #2C2C2C;
   }
   #modal-score {
-    font-size: 16px;
-    color: #555;
+    font-size: 18px;
+    color: #444444;
+    letter-spacing: 0.5px;
   }
   #modal-best {
     font-size: 13px;
     color: #AAAAAA;
+    letter-spacing: 0.5px;
   }
-  #modal-restart {
-    margin-top: 12px;
-    padding: 12px 36px;
+
+  /* ── 공용 버튼 ─────────────────────────────────────────── */
+  .action-btn {
+    padding: 12px 44px;
     background: #E8B4A0;
     color: #FFFFFF;
     font-size: 15px;
     font-weight: 600;
     font-family: inherit;
     border: none;
-    border-radius: 8px;
+    border-radius: 50px;
     cursor: pointer;
-    letter-spacing: 0.3px;
-    transition: opacity 0.15s;
+    letter-spacing: 0.5px;
+    transition: opacity 0.15s, transform 0.12s;
+    margin-top: 10px;
   }
-  #modal-restart:hover { opacity: 0.85; }
+  .action-btn:hover  { opacity: 0.86; }
+  .action-btn:active { transform: scale(0.95); }
+
+  /* ── 힌트 ──────────────────────────────────────────────── */
+  #hint {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #CCCCCC;
+    letter-spacing: 0.5px;
+  }
 
   /* ── 반응형 ────────────────────────────────────────────── */
   @media (max-width: 480px) {
@@ -134,8 +176,16 @@
       height: calc(100vw * 1.5);
       border-left: none;
       border-right: none;
+      box-shadow: none;
     }
-    #score { font-size: 44px; }
+    #score { font-size: 52px; }
+    #best-score { font-size: 13px; }
+  }
+  /* 화면이 낮을 때 점수 영역 축소 */
+  @media (max-height: 750px) {
+    #score { font-size: 48px; }
+    #score-area { margin-bottom: 10px; }
+    #hint { display: none; }
   }
 </style>
 </head>
@@ -143,21 +193,30 @@
 
 <div id="score-area">
   <div id="score">0</div>
-  <div id="best-score">최고 0</div>
+  <div id="best-score">BEST 0</div>
 </div>
 
 <div id="canvas-wrapper">
   <canvas id="overlay"></canvas>
-  <!-- 게임오버 모달 (canvas-wrapper 안에 overlay로) -->
-  <div id="modal">
+
+  <!-- 시작 화면 -->
+  <div id="start-screen" class="panel">
+    <div id="start-title">Hedgehog Stack</div>
+    <div id="start-sub">클릭해서 고슴도치를 쌓으세요</div>
+    <button id="start-btn" class="action-btn">시작</button>
+    <div id="start-best">BEST 0</div>
+  </div>
+
+  <!-- 게임오버 -->
+  <div id="modal" class="panel">
     <div id="modal-title">GAME OVER</div>
-    <div id="modal-score">최종 점수: 0</div>
-    <div id="modal-best">최고 점수: 0</div>
-    <button id="modal-restart">다시 시작</button>
+    <div id="modal-score">최종 점수 0</div>
+    <div id="modal-best">BEST 0</div>
+    <button id="modal-restart" class="action-btn">다시 시작</button>
   </div>
 </div>
 
-<div id="hint">클릭 또는 스페이스바로 떨어뜨리기</div>
+<div id="hint">Space / Enter 로 떨어뜨리기</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -166,21 +225,23 @@
 const W = 400, H = 600;
 const WALL_T      = 50;
 const HOG_R       = 28;
-const SWING_Y_SCR = 55;         // 흔들리는 고슴도치의 화면 y (픽셀)
-const SWING_AMP   = W * 0.35;
-const SWING_SPEED = 0.0018;
-const GUIDE_STEP  = 100;        // 가이드라인 간격 (world 좌표)
-const STABLE_SPD  = 0.15;       // 안정 판정 속도 임계값
-const STABLE_MS   = 600;        // 안정 유지 시간
-const CAM_LERP    = 0.05;       // 카메라 보간 계수
-const CAM_PAD     = H * 0.30;   // 최고점이 화면 상단 30%에 오도록
+const SWING_Y_SCR = 55;          // 흔들리는 고슴도치 화면 y (px)
+const BASE_SPEED  = 0.0018;      // 기본 흔들리기 각속도
+const BASE_AMP    = W * 0.35;    // 기본 좌우 진폭
+const GUIDE_STEP  = 100;
+const STABLE_SPD  = 0.15;
+const STABLE_MS   = 600;
+const CAM_LERP    = 0.05;
+const CAM_PAD     = H * 0.30;
+const FADE_MS     = 200;         // 게임오버 바디 페이드 시간
+const MODAL_DELAY = 220;         // 모달 등장 지연
 
 const COLORS = ['#E8B4A0', '#D4A574', '#B8C5D6', '#C5B8A5', '#E0C9B8'];
 
 // ═══════════════════════════════════════════════════════════
 // Matter.js 셋업
 // ═══════════════════════════════════════════════════════════
-const { Engine, Render, Runner, World, Bodies, Body } = Matter;
+const { Engine, Render, Runner, World, Bodies } = Matter;
 
 const wrapper = document.getElementById('canvas-wrapper');
 const engine  = Engine.create({ gravity: { y: 1 } });
@@ -194,27 +255,22 @@ const render = Render.create({
     height:     H,
     background: '#FAFAFA',
     wireframes: false,
-    hasBounds:  true,           // 카메라 이동 활성화
+    hasBounds:  true,
   }
 });
+render.bounds.min.x = 0; render.bounds.max.x = W;
+render.bounds.min.y = 0; render.bounds.max.y = H;
 
-// 초기 bounds
-render.bounds.min.x = 0;  render.bounds.max.x = W;
-render.bounds.min.y = 0;  render.bounds.max.y = H;
-
-// 경계 — 벽은 충분히 길게 (타워가 높아져도 막아야 함)
-const WALL_H = 16000;
-const ground = Bodies.rectangle(W/2, H + WALL_T/2, W + WALL_T*2, WALL_T, {
-  isStatic: true, label: 'ground', render: { fillStyle: 'transparent' }
-});
-const wallL = Bodies.rectangle(-WALL_T/2, H/2 - WALL_H/2, WALL_T, WALL_H, {
-  isStatic: true, label: 'wall-l', render: { fillStyle: 'transparent' }
-});
-const wallR = Bodies.rectangle(W + WALL_T/2, H/2 - WALL_H/2, WALL_T, WALL_H, {
-  isStatic: true, label: 'wall-r', render: { fillStyle: 'transparent' }
-});
-const boundaries = [ground, wallL, wallR];
-World.add(world, boundaries);
+// 경계 — 벽을 매우 길게 (타워 상승 대응)
+const WALL_H = 20000;
+World.add(world, [
+  Bodies.rectangle(W/2, H+WALL_T/2, W+WALL_T*2, WALL_T,
+    { isStatic:true, render:{fillStyle:'transparent'} }),
+  Bodies.rectangle(-WALL_T/2, H/2-WALL_H/2, WALL_T, WALL_H,
+    { isStatic:true, render:{fillStyle:'transparent'} }),
+  Bodies.rectangle(W+WALL_T/2, H/2-WALL_H/2, WALL_T, WALL_H,
+    { isStatic:true, render:{fillStyle:'transparent'} }),
+]);
 
 Render.run(render);
 const runner = Runner.create();
@@ -224,148 +280,189 @@ Runner.run(runner, engine);
 // Overlay Canvas
 // ═══════════════════════════════════════════════════════════
 const overlay = document.getElementById('overlay');
+const ctx     = overlay.getContext('2d');
 
 function resizeOverlay() {
   overlay.width  = wrapper.clientWidth;
   overlay.height = wrapper.clientHeight;
 }
 resizeOverlay();
-window.addEventListener('resize', resizeOverlay);
+window.addEventListener('resize', () => { resizeOverlay(); });
 
-const ctx = overlay.getContext('2d');
-
-// world 좌표 → overlay 픽셀 좌표 (카메라 오프셋 반영)
+// world 좌표 → 화면 픽셀 (카메라 offset 반영)
 function w2s(wx, wy) {
   return [
     wx * (overlay.width  / W),
     (wy - camY) * (overlay.height / H),
   ];
 }
+// 픽셀 단위 반지름 (scale 보정)
+function scaledR(r) {
+  return r * Math.min(overlay.width/W, overlay.height/H);
+}
 
 // ═══════════════════════════════════════════════════════════
 // 색상 유틸
 // ═══════════════════════════════════════════════════════════
 function darkenHex(hex, amount = 0.15) {
-  let r = parseInt(hex.slice(1,3),16)/255;
-  let g = parseInt(hex.slice(3,5),16)/255;
-  let b = parseInt(hex.slice(5,7),16)/255;
+  let r=parseInt(hex.slice(1,3),16)/255;
+  let g=parseInt(hex.slice(3,5),16)/255;
+  let b=parseInt(hex.slice(5,7),16)/255;
   const max=Math.max(r,g,b), min=Math.min(r,g,b);
-  let h2, s, l=(max+min)/2;
-  if (max===min) { h2=s=0; }
-  else {
+  let h2,s,l=(max+min)/2;
+  if(max===min){h2=s=0;}
+  else{
     const d=max-min;
-    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    s=l>0.5?d/(2-max-min):d/(max+min);
     switch(max){
-      case r: h2=((g-b)/d+(g<b?6:0))/6; break;
-      case g: h2=((b-r)/d+2)/6; break;
-      default: h2=((r-g)/d+4)/6;
+      case r:h2=((g-b)/d+(g<b?6:0))/6;break;
+      case g:h2=((b-r)/d+2)/6;break;
+      default:h2=((r-g)/d+4)/6;
     }
   }
-  l = Math.max(0, l-amount);
-  function hue2rgb(p,q,t){ if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p; }
-  const q2=l<0.5?l*(1+s):l+s-l*s, p2=2*l-q2;
-  r=hue2rgb(p2,q2,h2+1/3); g=hue2rgb(p2,q2,h2); b=hue2rgb(p2,q2,h2-1/3);
+  l=Math.max(0,l-amount);
+  function hue2rgb(p,q,t){if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;}
+  const q2=l<0.5?l*(1+s):l+s-l*s,p2=2*l-q2;
+  r=hue2rgb(p2,q2,h2+1/3);g=hue2rgb(p2,q2,h2);b=hue2rgb(p2,q2,h2-1/3);
   return `rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)})`;
 }
 
 // ═══════════════════════════════════════════════════════════
-// 고슴도치 그리기 (world 좌표 기준)
+// 고슴도치 그리기
 // ═══════════════════════════════════════════════════════════
-function drawHedgehog(wx, wy, angle, color, r) {
+function drawHedgehog(wx, wy, angle, color, r, alpha=1) {
+  if(alpha <= 0) return;
   const [px, py] = w2s(wx, wy);
-  const sc  = Math.min(overlay.width/W, overlay.height/H);
-  const pr  = r * sc;
+  const pr = scaledR(r);
   const spineColor = darkenHex(color, 0.15);
 
   ctx.save();
+  ctx.globalAlpha = alpha;
   ctx.translate(px, py);
   ctx.rotate(angle);
 
-  // 가시 (10시~2시, 10개, 물방울 모양)
-  const A0 = -160 * Math.PI/180, A1 = -20 * Math.PI/180;
+  // 가시 — 10시~2시, 10개, lineCap='round' 으로 끝이 둥글게
   ctx.lineCap = 'round';
-  for (let i = 0; i < 10; i++) {
-    const a = A0 + (i/9) * (A1-A0);
-    const sl = pr * 0.40;
+  const A0=-160*Math.PI/180, A1=-20*Math.PI/180;
+  for(let i=0;i<10;i++){
+    const a=A0+(i/9)*(A1-A0), sl=pr*0.40;
     ctx.beginPath();
     ctx.moveTo(Math.cos(a)*pr, Math.sin(a)*pr);
     ctx.lineTo(Math.cos(a)*(pr+sl), Math.sin(a)*(pr+sl));
-    ctx.strokeStyle = spineColor;
-    ctx.lineWidth   = pr * 0.23;
+    ctx.strokeStyle=spineColor;
+    ctx.lineWidth=pr*0.23;
     ctx.stroke();
   }
 
   // 몸통
   ctx.beginPath();
-  ctx.arc(0, 0, pr, 0, Math.PI*2);
-  ctx.fillStyle = color;
+  ctx.arc(0,0,pr,0,Math.PI*2);
+  ctx.fillStyle=color;
   ctx.fill();
 
   // 볼터치
-  ctx.globalAlpha = 0.22;
-  ctx.fillStyle = '#FF8888';
-  ctx.beginPath(); ctx.arc(-pr*0.33, pr*0.20, pr*0.20, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc( pr*0.33, pr*0.20, pr*0.20, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha=alpha*0.22;
+  ctx.fillStyle='#FF8888';
+  ctx.beginPath();ctx.arc(-pr*0.33,pr*0.20,pr*0.20,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc( pr*0.33,pr*0.20,pr*0.20,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=alpha;
 
   // 눈
-  const eyeY = -pr*0.10, eyeX = pr*0.27, eyeR = pr*0.11;
-  ctx.fillStyle = '#2C2C2C';
-  ctx.beginPath(); ctx.arc(-eyeX, eyeY, eyeR, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc( eyeX, eyeY, eyeR, 0, Math.PI*2); ctx.fill();
-  // 하이라이트
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.beginPath(); ctx.arc(-eyeX+eyeR*0.3, eyeY-eyeR*0.3, eyeR*0.38, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc( eyeX+eyeR*0.3, eyeY-eyeR*0.3, eyeR*0.38, 0, Math.PI*2); ctx.fill();
+  const eyeY=-pr*0.10, eyeX=pr*0.27, eyeR=pr*0.11;
+  ctx.fillStyle='#2C2C2C';
+  ctx.beginPath();ctx.arc(-eyeX,eyeY,eyeR,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc( eyeX,eyeY,eyeR,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.55)';
+  ctx.beginPath();ctx.arc(-eyeX+eyeR*0.3,eyeY-eyeR*0.3,eyeR*0.38,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc( eyeX+eyeR*0.3,eyeY-eyeR*0.3,eyeR*0.38,0,Math.PI*2);ctx.fill();
 
   // 코
-  ctx.fillStyle = '#2C2C2C';
-  ctx.beginPath();
-  ctx.ellipse(0, eyeY+pr*0.28, pr*0.08, pr*0.055, 0, 0, Math.PI*2);
-  ctx.fill();
+  ctx.fillStyle='#2C2C2C';
+  ctx.beginPath();ctx.ellipse(0,eyeY+pr*0.28,pr*0.08,pr*0.055,0,0,Math.PI*2);ctx.fill();
 
   ctx.restore();
 }
 
 // ═══════════════════════════════════════════════════════════
-// 가이드라인 (세계 y 축, 100 단위)
+// 가이드라인
 // ═══════════════════════════════════════════════════════════
 function drawGuideLines() {
-  const sh = overlay.height;
-  const sw = overlay.width;
-  const scaleY = sh / H;
-
+  const scY=overlay.height/H;
   ctx.save();
-  ctx.strokeStyle = '#E8E8E8';
-  ctx.lineWidth   = 1;
-  ctx.setLineDash([4, 8]);
-
-  // 현재 뷰에서 보이는 world y 범위
-  const topW    = camY;
-  const bottomW = camY + H;
-  const startW  = Math.floor(topW / GUIDE_STEP) * GUIDE_STEP;
-
-  for (let wy = startW; wy <= bottomW + GUIDE_STEP; wy += GUIDE_STEP) {
-    const sy = (wy - camY) * scaleY;
-    if (sy < -2 || sy > sh + 2) continue;
-    ctx.beginPath();
-    ctx.moveTo(0,  sy);
-    ctx.lineTo(sw, sy);
-    ctx.stroke();
-
-    // 높이 라벨 (ground 기준 위로 몇 px인지)
-    const heightVal = Math.round(H - wy);
-    if (heightVal > 0) {
-      ctx.save();
-      ctx.setLineDash([]);
-      ctx.fillStyle   = '#DDDDDD';
-      ctx.font        = '10px system-ui, sans-serif';
-      ctx.fillText(`${heightVal}`, 6, sy - 3);
-      ctx.restore();
+  ctx.strokeStyle='#EBEBEB';
+  ctx.lineWidth=1;
+  ctx.setLineDash([4,8]);
+  const startW=Math.floor(camY/GUIDE_STEP)*GUIDE_STEP;
+  for(let wy=startW;wy<=camY+H+GUIDE_STEP;wy+=GUIDE_STEP){
+    const sy=(wy-camY)*scY;
+    if(sy<-2||sy>overlay.height+2) continue;
+    ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(overlay.width,sy);ctx.stroke();
+    const hv=Math.round(H-wy);
+    if(hv>0){
+      ctx.save();ctx.setLineDash([]);
+      ctx.fillStyle='#DDDDDD';ctx.font='10px system-ui,sans-serif';
+      ctx.fillText(`${hv}`,6,sy-3);ctx.restore();
     }
   }
   ctx.setLineDash([]);
   ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════
+// 조준선
+// ═══════════════════════════════════════════════════════════
+function drawAimLine(wx, wy) {
+  const [px, py] = w2s(wx, wy);
+  const pr = scaledR(HOG_R);
+  ctx.save();
+  ctx.strokeStyle='#DDDDDD';
+  ctx.lineWidth=1;
+  ctx.setLineDash([4,8]);
+  ctx.beginPath();
+  ctx.moveTo(px, py+pr+2);
+  ctx.lineTo(px, overlay.height);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════
+// 리플 효과
+// ═══════════════════════════════════════════════════════════
+let ripples = [];   // { wx, wy, startTs }
+
+function spawnRipple(wx, wy) {
+  ripples.push({ wx, wy, startTs: performance.now() });
+}
+
+function drawRipples(ts) {
+  const DUR = 250;
+  ripples = ripples.filter(r => ts - r.startTs < DUR);
+  for(const r of ripples){
+    const t  = (ts-r.startTs)/DUR;
+    const [px,py] = w2s(r.wx, r.wy);
+    const rad = scaledR(HOG_R) * (1 + t*0.85);
+    ctx.save();
+    ctx.globalAlpha = (1-t)*0.6;
+    ctx.strokeStyle = '#E8B4A0';
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath();ctx.arc(px,py,rad,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 난이도 계산
+// ═══════════════════════════════════════════════════════════
+function swingSpeed() {
+  if(score>=30) return 0.0030;          // 상한
+  if(score>=10) return 0.0025;
+  return BASE_SPEED;
+}
+function swingAmp() {
+  if(score>=30) return Math.min(W*0.42, BASE_AMP*1.20);  // 상한
+  if(score>=20) return Math.min(W*0.40, BASE_AMP*1.15);
+  return BASE_AMP;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -376,35 +473,42 @@ let swingTime     = 0;
 let nextColor     = randomColor();
 let isDropping    = false;
 let dropTimer     = null;
+let isStarted     = false;
 let isGameOver    = false;
-let camY          = 0;     // 현재 카메라 world y (화면 최상단)
+let gameOverTs    = -1;
+let modalVisible  = false;
+let camY          = 0;
 let camTargetY    = 0;
 let lastTs        = 0;
+let score         = 0;
+let best          = parseInt(localStorage.getItem('hs_best') || '0');
 
-let score = 0;
-let best  = parseInt(localStorage.getItem('hs_best') || '0');
-
+// DOM
 const scoreEl      = document.getElementById('score');
 const bestEl       = document.getElementById('best-score');
 const modal        = document.getElementById('modal');
 const modalScore   = document.getElementById('modal-score');
 const modalBest    = document.getElementById('modal-best');
 const modalRestart = document.getElementById('modal-restart');
+const startScreen  = document.getElementById('start-screen');
+const startBtn     = document.getElementById('start-btn');
+const startBestEl  = document.getElementById('start-best');
 
-bestEl.textContent = `최고 ${best}`;
+function randomColor() { return COLORS[Math.floor(Math.random()*COLORS.length)]; }
 
-function randomColor() {
-  return COLORS[Math.floor(Math.random() * COLORS.length)];
-}
-
-// 현재 흔들리는 고슴도치의 world 위치
-function swingWorldX() {
-  return W/2 + Math.sin(swingTime * SWING_SPEED) * SWING_AMP;
-}
+function swingWorldX() { return W/2 + Math.sin(swingTime*swingSpeed())*swingAmp(); }
 function swingWorldY() {
-  // 화면 상단 SWING_Y_SCR px 위치를 world 좌표로
+  // 화면 SWING_Y_SCR px 위치를 world y로 역산
   return camY + SWING_Y_SCR * (H / overlay.height);
 }
+
+// 초기 점수 표시
+function refreshBestUI() {
+  bestEl.textContent     = `BEST ${best}`;
+  startBestEl.textContent = `BEST ${best}`;
+  modalBest.textContent  = `BEST ${best}`;
+}
+refreshBestUI();
 
 // ═══════════════════════════════════════════════════════════
 // 점수
@@ -412,16 +516,15 @@ function swingWorldY() {
 function addScore() {
   score++;
   scoreEl.textContent = score;
-  // 팝 애니메이션
   scoreEl.classList.remove('pop');
-  void scoreEl.offsetWidth;
+  void scoreEl.offsetWidth;         // reflow 강제
   scoreEl.classList.add('pop');
-  setTimeout(() => scoreEl.classList.remove('pop'), 120);
+  setTimeout(() => scoreEl.classList.remove('pop'), 200);
 
-  if (score > best) {
+  if(score > best) {
     best = score;
     localStorage.setItem('hs_best', best);
-    bestEl.textContent = `최고 ${best}`;
+    refreshBestUI();
   }
 }
 
@@ -429,34 +532,35 @@ function addScore() {
 // 게임 오버
 // ═══════════════════════════════════════════════════════════
 function triggerGameOver() {
-  if (isGameOver) return;
+  if(isGameOver) return;
   isGameOver = true;
-
+  gameOverTs = performance.now();
   Runner.stop(runner);
 
-  modalScore.textContent = `최종 점수: ${score}`;
-  modalBest.textContent  = `최고 점수: ${best}`;
-  modal.classList.add('show');
+  // 바디 페이드 후 모달 표시
+  setTimeout(() => {
+    modalVisible = true;
+    modalScore.textContent = `최종 점수 ${score}`;
+    modalBest.textContent  = `BEST ${best}`;
+    modal.classList.add('visible');
+  }, MODAL_DELAY);
 }
 
 // ═══════════════════════════════════════════════════════════
 // 드롭
 // ═══════════════════════════════════════════════════════════
 function drop() {
-  if (isDropping || isGameOver) return;
+  if(!isStarted || isDropping || isGameOver) return;
   isDropping = true;
 
-  const wx = swingWorldX();
-  const wy = swingWorldY();
-  const color = nextColor;
+  const wx=swingWorldX(), wy=swingWorldY(), color=nextColor;
 
   const body = Bodies.circle(wx, wy, HOG_R, {
     restitution: 0.25,
     friction:    0.55,
     density:     0.002,
     label:       'hedgehog',
-    render:      { fillStyle: 'transparent', strokeStyle: 'transparent', lineWidth: 0 },
-    // 커스텀 속성 (Matter.js body에 직접 붙임)
+    render:      { fillStyle:'transparent', strokeStyle:'transparent', lineWidth:0 },
     hogColor:    color,
     stableTimer: 0,
     scored:      false,
@@ -465,7 +569,7 @@ function drop() {
   World.add(world, body);
   droppedBodies.push(body);
 
-  if (dropTimer) clearTimeout(dropTimer);
+  if(dropTimer) clearTimeout(dropTimer);
   dropTimer = setTimeout(() => {
     nextColor  = randomColor();
     isDropping = false;
@@ -473,61 +577,80 @@ function drop() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 입력
+// 시작
 // ═══════════════════════════════════════════════════════════
-wrapper.addEventListener('click', drop);
-document.addEventListener('keydown', e => {
-  if (e.code === 'Space' || e.code === 'ArrowDown') { e.preventDefault(); drop(); }
-});
-wrapper.addEventListener('touchstart', e => { e.preventDefault(); drop(); }, { passive: false });
+function startGame() {
+  if(isStarted) return;
+  isStarted = true;
+  startScreen.classList.remove('visible');
+}
 
 // ═══════════════════════════════════════════════════════════
 // 재시작
 // ═══════════════════════════════════════════════════════════
 function restartGame() {
-  // 모든 고슴도치 제거
-  for (const b of droppedBodies) World.remove(world, b);
+  for(const b of droppedBodies) World.remove(world, b);
   droppedBodies = [];
+  ripples       = [];
 
-  // 상태 초기화
-  score      = 0;
-  camY       = 0;
-  camTargetY = 0;
-  isDropping = false;
-  isGameOver = false;
-  swingTime  = 0;
-  nextColor  = randomColor();
-  scoreEl.textContent = '0';
+  score=0; camY=0; camTargetY=0;
+  isDropping=false; isGameOver=false;
+  gameOverTs=-1; modalVisible=false;
+  swingTime=0; nextColor=randomColor();
 
-  // bounds 초기화
-  render.bounds.min.y = 0;
-  render.bounds.max.y = H;
+  scoreEl.textContent='0';
+  render.bounds.min.y=0; render.bounds.max.y=H;
 
-  modal.classList.remove('show');
+  modal.classList.remove('visible');
   Runner.run(runner, engine);
 }
 
-modalRestart.addEventListener('click', restartGame);
+// ═══════════════════════════════════════════════════════════
+// 입력
+// ═══════════════════════════════════════════════════════════
+startBtn.addEventListener('click', e => { e.stopPropagation(); startGame(); });
+modalRestart.addEventListener('click', e => { e.stopPropagation(); restartGame(); });
+wrapper.addEventListener('click', drop);
+wrapper.addEventListener('touchstart', e => { e.preventDefault(); drop(); }, { passive:false });
+
+document.addEventListener('keydown', e => {
+  // 시작 화면: Space / Enter 로 게임 시작
+  if(!isStarted) {
+    if(e.code==='Space'||e.code==='Enter') { e.preventDefault(); startGame(); }
+    return;
+  }
+  // 게임오버 화면: Enter 로 재시작
+  if(isGameOver && modalVisible) {
+    if(e.code==='Enter') { e.preventDefault(); restartGame(); }
+    return;
+  }
+  // 인게임: Space / Enter / ArrowDown 으로 떨어뜨리기
+  if(e.code==='Space'||e.code==='Enter'||e.code==='ArrowDown') {
+    e.preventDefault(); drop();
+  }
+});
 
 // ═══════════════════════════════════════════════════════════
 // 메인 루프
 // ═══════════════════════════════════════════════════════════
 function loop(ts) {
-  const dt = Math.min(ts - lastTs, 50); // 최대 50ms (탭 숨겨졌을 때 급격한 점프 방지)
-  lastTs    = ts;
+  const dt = Math.min(ts - lastTs, 50);
+  lastTs   = ts;
 
-  if (!isGameOver) {
+  // ── 인게임 로직 ────────────────────────────────────────
+  if(isStarted && !isGameOver) {
     swingTime += dt;
 
-    // ── 1. 안정도 체크 & 점수 ──────────────────────────────
-    for (const body of droppedBodies) {
-      if (body.scored) continue;
+    // 안정도 체크 → 점수
+    for(const body of droppedBodies) {
+      if(body.scored) continue;
       const spd = Math.hypot(body.velocity.x, body.velocity.y);
       const asp = Math.abs(body.angularVelocity);
-      if (spd < STABLE_SPD && asp < 0.05) {
+      if(spd < STABLE_SPD && asp < 0.05) {
         body.stableTimer += dt;
-        if (body.stableTimer >= STABLE_MS) {
+        if(body.stableTimer >= STABLE_MS) {
           body.scored = true;
+          spawnRipple(body.position.x, body.position.y);
           addScore();
         }
       } else {
@@ -535,57 +658,67 @@ function loop(ts) {
       }
     }
 
-    // ── 2. 게임오버 판정 ────────────────────────────────────
-    for (const body of droppedBodies) {
-      // 바닥 아래로 떨어짐
-      if (body.position.y > H + 120) { triggerGameOver(); break; }
-      // 좌우 밖으로 탈출
-      if (body.position.x < -HOG_R * 2.5 || body.position.x > W + HOG_R * 2.5) {
+    // 게임오버 판정
+    for(const body of droppedBodies) {
+      if(body.position.y > H+120 ||
+         body.position.x < -HOG_R*2.5 ||
+         body.position.x > W+HOG_R*2.5) {
         triggerGameOver(); break;
       }
     }
 
-    // ── 3. 카메라 추적 ──────────────────────────────────────
-    if (droppedBodies.length > 0) {
-      // 가장 높은(y가 가장 작은) 고슴도치를 찾음
+    // 카메라 추적
+    if(droppedBodies.length > 0) {
       let highestY = H;
-      for (const body of droppedBodies) {
-        if (body.position.y < highestY) highestY = body.position.y;
-      }
-      // 그 고슴도치가 화면 위에서 CAM_PAD 위치에 오도록
+      for(const b of droppedBodies) if(b.position.y < highestY) highestY=b.position.y;
       camTargetY = Math.min(0, highestY - CAM_PAD);
     } else {
       camTargetY = 0;
     }
     camY += (camTargetY - camY) * CAM_LERP;
-
-    // Matter.js 렌더 bounds 갱신
     render.bounds.min.y = camY;
     render.bounds.max.y = camY + H;
   }
 
-  // ── 4. Overlay 그리기 ─────────────────────────────────────
+  // ── 렌더링 ─────────────────────────────────────────────
   ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-  // 가이드라인
   drawGuideLines();
 
-  // 떨어진 고슴도치들
-  for (const body of droppedBodies) {
-    drawHedgehog(body.position.x, body.position.y, body.angle, body.hogColor, HOG_R);
+  // 떨어진 고슴도치 (게임오버 시 페이드아웃)
+  if(isGameOver) {
+    const elapsed = performance.now() - gameOverTs;
+    const alpha   = Math.max(0, 1 - elapsed / FADE_MS);
+    for(const b of droppedBodies)
+      drawHedgehog(b.position.x, b.position.y, b.angle, b.hogColor, HOG_R, alpha);
+  } else {
+    for(const b of droppedBodies)
+      drawHedgehog(b.position.x, b.position.y, b.angle, b.hogColor, HOG_R);
   }
 
-  // 흔들리는 대기 고슴도치
-  if (!isDropping && !isGameOver) {
+  drawRipples(ts);
+
+  // 흔들리는 대기 고슴도치 + 조준선 (인게임 + 드롭 대기 중)
+  if(isStarted && !isDropping && !isGameOver) {
     const wx  = swingWorldX();
     const wy  = swingWorldY();
-    const tilt = Math.cos(swingTime * SWING_SPEED) * 0.18;
+    const tilt = Math.cos(swingTime * swingSpeed()) * 0.18;
+    drawAimLine(wx, wy);
     drawHedgehog(wx, wy, tilt, nextColor, HOG_R);
+  }
+
+  // 시작 화면용 데모 고슴도치 (배경에 살짝 떠있는 느낌)
+  if(!isStarted) {
+    const bobY   = H*0.72 + Math.sin(ts*0.0016)*16;
+    const bobAng = Math.sin(ts*0.0011)*0.22;
+    drawHedgehog(W*0.5, bobY, bobAng, COLORS[0], HOG_R*1.25, 0.18);
   }
 
   requestAnimationFrame(loop);
 }
 
+// ── 초기화 ────────────────────────────────────────────────
+startScreen.classList.add('visible');
 requestAnimationFrame(loop);
 </script>
 </body>
