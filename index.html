@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고슴도치 아이스크림 가게</title>
+<!-- 🦔 SVG favicon -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦔</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  /* ── 리셋 & 기반 ─────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Jua', sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(160deg, #FFF0F5 0%, #FFF8F0 50%, #FFF4D6 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+
+  /* ── 앱 래퍼 ─────────────────────────────────────────── */
+  #app {
+    width: 100%;
+    max-width: 460px;
+  }
+
+  /* ── 타이틀 헤더 ─────────────────────────────────────── */
+  #app-header {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  #app-header h1 {
+    font-size: 20px;
+    color: #d1607a;
+    letter-spacing: -0.5px;
+  }
+
+  /* ── 점 진행바 ───────────────────────────────────────── */
+  #progress-dots {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #e0c8cc;
+    transition: background 0.35s ease, transform 0.35s ease, box-shadow 0.35s ease;
+    flex-shrink: 0;
+  }
+  .dot.active {
+    background: #FFB6C1;
+    transform: scale(1.4);
+    box-shadow: 0 0 0 3px rgba(255,182,193,0.35);
+  }
+  .dot.done { background: #f5a0b0; }
+
+  /* ── 화면 컨테이너 ───────────────────────────────────── */
+  #screen-container { position: relative; }
+
+  .step {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .step.active  { display: block; }
+  .step.visible { opacity: 1; }
+
+  /* ── 카드 ───────────────────────────────────────────── */
+  .step-card {
+    background: #fff;
+    border-radius: 28px;
+    padding: 26px 22px 22px;
+    box-shadow: 0 8px 32px rgba(209,96,122,0.10), 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 14px;
+  }
+
+  /* ── 단계 제목 ───────────────────────────────────────── */
+  .step-card h2 {
+    font-size: 24px;
+    color: #c0495e;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .step-card .subtitle {
+    font-size: 13px;
+    color: #c09090;
+    margin-bottom: 18px;
+    font-family: sans-serif;
+    font-weight: normal;
+  }
+
+  /* ── 일러스트 placeholder ────────────────────────────── */
+  .illustration-placeholder {
+    background: linear-gradient(135deg, #ffeef2 0%, #fff4d6 100%);
+    border-radius: 18px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #e0b0b8;
+    font-size: 13px;
+    font-family: sans-serif;
+    margin-bottom: 20px;
+    border: 1.5px dashed #f5c5cc;
+  }
+
+  /* ── 선택 버튼 그리드 ────────────────────────────────── */
+  .option-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .option-group.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .option-btn {
+    padding: 13px 8px;
+    border: 2.5px solid #f0dde0;
+    border-radius: 20px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'Jua', sans-serif;
+    color: #7a5060;
+    transition: border-color 0.18s, background 0.18s, transform 0.18s, box-shadow 0.18s;
+    box-shadow: 0 2px 6px rgba(255,182,193,0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.3;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .option-btn .btn-emoji { font-size: 24px; }
+  .option-btn:hover {
+    border-color: #FFB6C1;
+    background: #fff6f8;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255,182,193,0.18);
+  }
+  .option-btn.selected {
+    border-color: #FFB6C1;
+    border-width: 3px;
+    background: #fff0f4;
+    color: #c0495e;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(255,182,193,0.28);
+  }
+  .option-btn:active { transform: scale(0.95) translateY(0) !important; }
+
+  /* ── 레이어 수 버튼 ──────────────────────────────────── */
+  #layer-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 6px;
+  }
+  .layer-btn {
+    width: 68px;
+    height: 68px;
+    border: 2.5px solid #f0dde0;
+    border-radius: 20px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 24px;
+    font-family: 'Jua', sans-serif;
+    color: #7a5060;
+    transition: border-color 0.18s, background 0.18s, transform 0.18s, box-shadow 0.18s;
+    box-shadow: 0 2px 6px rgba(255,182,193,0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .layer-btn .layer-label {
+    font-size: 10px;
+    color: #c09090;
+    font-family: sans-serif;
+  }
+  .layer-btn:hover {
+    border-color: #FFB6C1;
+    background: #fff6f8;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255,182,193,0.18);
+  }
+  .layer-btn.selected {
+    border-color: #FFB6C1;
+    border-width: 3px;
+    background: #fff0f4;
+    color: #c0495e;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(255,182,193,0.28);
+  }
+  .layer-btn:active { transform: scale(0.95) !important; }
+
+  /* ── 맛 선택 레이어 슬롯 ─────────────────────────────── */
+  .flavor-slot { margin-bottom: 16px; }
+  .flavor-slot-label {
+    font-size: 13px;
+    color: #c09090;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: sans-serif;
+  }
+  .layer-badge {
+    background: #FFB6C1;
+    color: #fff;
+    border-radius: 20px;
+    padding: 1px 10px;
+    font-size: 12px;
+    font-family: 'Jua', sans-serif;
+  }
+  .flavor-slot .option-group {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+    margin-bottom: 0;
+  }
+  .flavor-slot .option-btn {
+    padding: 9px 5px;
+    font-size: 12px;
+    border-radius: 14px;
+  }
+  .flavor-slot .option-btn .btn-emoji { font-size: 19px; }
+
+  /* ── 이름 입력 ───────────────────────────────────────── */
+  #name-input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2.5px solid #f0dde0;
+    border-radius: 20px;
+    font-size: 16px;
+    font-family: 'Jua', sans-serif;
+    color: #7a5060;
+    outline: none;
+    margin-bottom: 6px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #fff;
+  }
+  #name-input::placeholder { color: #e0b8c0; }
+  #name-input:focus {
+    border-color: #FFB6C1;
+    box-shadow: 0 0 0 4px rgba(255,182,193,0.16);
+  }
+
+  /* ── 7단계 아이스크림 이름 표시 ─────────────────────── */
+  #icecream-name-display {
+    text-align: center;
+    font-size: 26px;
+    color: #c0495e;
+    margin: 4px 0 16px;
+    min-height: 36px;
+    letter-spacing: -0.5px;
+  }
+
+  /* ── 요약 박스 ───────────────────────────────────────── */
+  #summary-box {
+    background: linear-gradient(135deg, #fff6f8 0%, #fff9ee 100%);
+    border: 1.5px solid #f5d5dc;
+    border-radius: 20px;
+    padding: 16px 18px;
+    margin-bottom: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .summary-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .summary-key {
+    color: #e0a0a8;
+    min-width: 48px;
+    font-size: 12px;
+    padding-top: 2px;
+    font-family: sans-serif;
+  }
+  .summary-val {
+    color: #7a4050;
+    flex: 1;
+    line-height: 1.6;
+    word-break: keep-all;
+  }
+  .summary-chip {
+    display: inline-block;
+    background: #FFB6C1;
+    color: #fff;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 12px;
+    margin: 2px 2px 2px 0;
+  }
+
+  /* ── 네비게이션 버튼 ─────────────────────────────────── */
+  .nav-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  .nav-buttons.col {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .nav-buttons .nav-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .nav-btn {
+    padding: 14px 20px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 15px;
+    font-family: 'Jua', sans-serif;
+    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn.secondary {
+    background: #fff;
+    color: #c09090;
+    border: 2px solid #f0dde0;
+    flex: 1;
+  }
+  .nav-btn.secondary:hover { background: #fff6f8; transform: scale(1.03); }
+  .nav-btn.primary {
+    background: linear-gradient(135deg, #FFB6C1 0%, #ff8fa3 100%);
+    color: #fff;
+    flex: 1;
+    box-shadow: 0 4px 14px rgba(255,143,163,0.32);
+  }
+  .nav-btn.primary:hover {
+    transform: scale(1.03);
+    box-shadow: 0 6px 20px rgba(255,143,163,0.42);
+  }
+  .nav-btn.primary:active  { transform: scale(0.97); }
+  .nav-btn.primary:disabled {
+    background: linear-gradient(135deg, #e8d0d4 0%, #ddc0c8 100%);
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .nav-btn.danger {
+    background: #fff;
+    color: #aaa;
+    border: 2px solid #eee;
+    flex: 1;
+  }
+  .nav-btn.danger:hover { background: #f9f9f9; transform: scale(1.03); }
+
+  /* ── 아이스크림 bounce 애니메이션 ────────────────────── */
+  @keyframes hog-bounce-0 { 0%,100%{transform:translateY(0)} 45%{transform:translateY(-8px)} }
+  @keyframes hog-bounce-1 { 0%,100%{transform:translateY(0)} 45%{transform:translateY(-7px)} }
+  @keyframes hog-bounce-2 { 0%,100%{transform:translateY(0)} 45%{transform:translateY(-6px)} }
+  @keyframes hog-bounce-3 { 0%,100%{transform:translateY(0)} 45%{transform:translateY(-5px)} }
+  .hog-layer-0 { animation: hog-bounce-0 2.5s ease-in-out 0.00s infinite; }
+  .hog-layer-1 { animation: hog-bounce-1 2.5s ease-in-out 0.18s infinite; }
+  .hog-layer-2 { animation: hog-bounce-2 2.5s ease-in-out 0.36s infinite; }
+  .hog-layer-3 { animation: hog-bounce-3 2.5s ease-in-out 0.54s infinite; }
+
+  /* ── 저장 버튼 스피너 ────────────────────────────────── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .saving { opacity: 0.7; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 헤더 -->
+  <div id="app-header">
+    <h1>🦔 고슴도치 아이스크림</h1>
+  </div>
+
+  <!-- 점 진행바 -->
+  <div id="progress-dots">
+    <div class="dot" data-step="1"></div>
+    <div class="dot" data-step="2"></div>
+    <div class="dot" data-step="3"></div>
+    <div class="dot" data-step="4"></div>
+    <div class="dot" data-step="5"></div>
+    <div class="dot" data-step="6"></div>
+    <div class="dot" data-step="7"></div>
+  </div>
+
+  <!-- 화면 컨테이너 -->
+  <div id="screen-container">
+
+    <!-- STEP 1: 콘 선택 -->
+    <div class="step" id="step1">
+      <div class="step-card">
+        <h2>콘을 골라주세요</h2>
+        <p class="subtitle">아이스크림을 담을 그릇을 선택하세요.</p>
+        <div class="illustration-placeholder">[ 콘 일러스트 자리 ]</div>
+        <div class="option-group" id="cone-options">
+          <button class="option-btn" data-value="waffle">
+            <span class="btn-emoji">🧇</span>와플콘
+          </button>
+          <button class="option-btn" data-value="cup">
+            <span class="btn-emoji">🥤</span>컵
+          </button>
+          <button class="option-btn" data-value="sugar">
+            <span class="btn-emoji">🍦</span>슈가콘
+          </button>
+          <button class="option-btn" data-value="cupcake">
+            <span class="btn-emoji">🧁</span>컵케이크
+          </button>
+        </div>
+      </div>
+      <div class="nav-buttons">
+        <button class="nav-btn primary" id="next1" disabled>다음으로 →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: 레이어 수 선택 -->
+    <div class="step" id="step2">
+      <div class="step-card">
+        <h2>몇 층으로 쌓을까요?</h2>
+        <p class="subtitle">1층부터 4층까지 고를 수 있어요.</p>
+        <div class="illustration-placeholder">[ 레이어 일러스트 자리 ]</div>
+        <div id="layer-buttons">
+          <button class="layer-btn" data-value="1">1<span class="layer-label">층</span></button>
+          <button class="layer-btn" data-value="2">2<span class="layer-label">층</span></button>
+          <button class="layer-btn" data-value="3">3<span class="layer-label">층</span></button>
+          <button class="layer-btn" data-value="4">4<span class="layer-label">층</span></button>
+        </div>
+      </div>
+      <div class="nav-buttons">
+        <button class="nav-btn secondary" id="prev2">← 이전</button>
+        <button class="nav-btn primary"   id="next2" disabled>다음으로 →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: 맛 선택 -->
+    <div class="step" id="step3">
+      <div class="step-card">
+        <h2>맛을 선택하세요</h2>
+        <p class="subtitle">레이어마다 다른 맛을 고를 수 있어요.</p>
+        <div id="flavor-slots"></div>
+      </div>
+      <div class="nav-buttons">
+        <button class="nav-btn secondary" id="prev3">← 이전</button>
+        <button class="nav-btn primary"   id="next3" disabled>다음으로 →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: 얼굴 선택 -->
+    <div class="step" id="step4">
+      <div class="step-card">
+        <h2>고슴도치 표정을<br>골라주세요</h2>
+        <p class="subtitle">아이스크림 위에 올라갈 표정이에요.</p>
+        <div class="illustration-placeholder">[ 얼굴 일러스트 자리 ]</div>
+        <div class="option-group" id="face-options">
+          <button class="option-btn" data-value="happy">
+            <span class="btn-emoji">😊</span>해피
+          </button>
+          <button class="option-btn" data-value="sleepy">
+            <span class="btn-emoji">😴</span>졸려
+          </button>
+          <button class="option-btn" data-value="sassy">
+            <span class="btn-emoji">😏</span>새침
+          </button>
+          <button class="option-btn" data-value="excited">
+            <span class="btn-emoji">🤩</span>신남
+          </button>
+        </div>
+      </div>
+      <div class="nav-buttons">
+        <button class="nav-btn secondary" id="prev4">← 이전</button>
+        <button class="nav-btn primary"   id="next4" disabled>다음으로 →</button>
+      </div>
+    </div>
+
+    <!-- STEP 5: 토핑 선택 -->
+    <div class="step" id="step5">
+      <div class="step-card">
+        <h2>토핑을 골라주세요</h2>
+        <p class="subtitle">여러 개 선택할 수 있어요. 없어도 괜찮아요!</p>
+        <div class="illustration-placeholder">[ 토핑 일러스트 자리 ]</div>
+        <div class="option-group cols-3" id="topping-options">
+          <button class="option-btn" data-value="choco">
+            <span class="btn-emoji">🍫</span>초코칩
+          </button>
+          <button class="option-btn" data-value="sprinkle">
+            <span class="btn-emoji">🌈</span>스프링클
+          </button>
+          <button class="option-btn" data-value="nuts">
+            <span class="btn-emoji">🥜</span>견과류
+          </button>
+          <button class="option-btn" data-value="cookie">
+            <span class="btn-emoji">🍪</span>웨하스
+          </button>
+          <button class="option-btn" data-value="berry">
+            <span class="btn-emoji">🍒</span>체리
+          </button>
+          <button class="option-btn" data-value="whip">
+            <span class="btn-emoji">☁️</span>휘핑
+          </button>
+        </div>
+      </div>
+      <div class="nav-buttons">
+        <button class="nav-btn secondary" id="prev5">← 이전</button>
+        <button class="nav-btn primary"   id="next5">다음으로 →</button>
+      </div>
+    </div>
+
+    <!-- STEP 6: 이름 입력 -->
+    <div class="step" id="step6">
+      <div class="step-card">
+        <h2>이름을 지어주세요</h2>
+        <p class="subtitle">나만의 아이스크림 이름을 붙여봐요!</p>
+        <div class="illustration-placeholder">[ 이름 일러스트 자리 ]</div>
+        <input type="text" id="name-input" placeholder="예: 행복한 초코 고슴도치" maxlength="20">
+      </div>
+      <div class="nav-buttons">
+        <button class="nav-btn secondary" id="prev6">← 이전</button>
+        <button class="nav-btn primary"   id="next6" disabled>다음으로 →</button>
+      </div>
+    </div>
+
+    <!-- STEP 7: 완성 -->
+    <div class="step" id="step7">
+      <div class="step-card">
+        <h2>주문 완성! 🎉</h2>
+        <p class="subtitle">나만의 고슴도치 아이스크림이에요.</p>
+        <!-- 아이스크림 SVG 일러스트 -->
+        <div id="hedgehog-preview"
+             style="display:flex;justify-content:center;align-items:flex-end;
+                    margin-bottom:6px;min-height:320px;">
+        </div>
+        <!-- 이름 표시 -->
+        <div id="icecream-name-display"></div>
+        <!-- 요약 -->
+        <div id="summary-box">
+          <div class="summary-row">
+            <span class="summary-key">콘</span>
+            <span class="summary-val" id="s-cone">-</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">레이어</span>
+            <span class="summary-val" id="s-layers">-</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">맛</span>
+            <span class="summary-val" id="s-flavors">-</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">표정</span>
+            <span class="summary-val" id="s-face">-</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">토핑</span>
+            <span class="summary-val" id="s-toppings">-</span>
+          </div>
+        </div>
+      </div>
+      <!-- 버튼 영역 -->
+      <div class="nav-buttons col">
+        <button class="nav-btn primary"  id="btn-save">📷 이미지 저장</button>
+        <div class="nav-row">
+          <button class="nav-btn secondary" id="prev7">← 이전</button>
+          <button class="nav-btn danger"    id="btn-restart">처음부터 다시</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /screen-container -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// 고슴도치 SVG
+// ═══════════════════════════════════════════════════════════
+function createHedgehog(fillColor, face) {
+  function f(n) { return n.toFixed(2); }
+  const cx = 100, cy = 120, R = 78;
+
+  function hexToRgb(hex) {
+    const h = hex.replace('#','');
+    return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+  }
+  function toHex(r,g,b) {
+    return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');
+  }
+  const [sr,sg,sb] = hexToRgb(fillColor);
+  const spineColor  = toHex(sr-45, sg-50, sb-38);
+  const spineColor2 = toHex(sr-25, sg-30, sb-20);
+  const bellyColor  = toHex(Math.min(255,sr+30), Math.min(255,sg+28), Math.min(255,sb+22));
+
+  // 가시
+  const SPINE_COUNT = 24;
+  const ANG_START = 195 * Math.PI / 180;
+  const ANG_END   = 345 * Math.PI / 180;
+  const spines = [];
+  for (let i = 0; i < SPINE_COUNT; i++) {
+    const t   = i / (SPINE_COUNT - 1);
+    const ang = ANG_START + t * (ANG_END - ANG_START);
+    const a   = ang + Math.sin(i * 2.618) * 0.06;
+    const spineLen = 9 + Math.abs(Math.sin(i * 1.37)) * 5;
+    const halfW    = 3.5 + Math.sin(i * 0.9) * 0.8;
+    const bx = cx + R * Math.cos(a);
+    const by = cy + R * Math.sin(a);
+    const tx = cx + (R + spineLen) * Math.cos(a);
+    const ty = cy + (R + spineLen) * Math.sin(a);
+    const pa = a + Math.PI / 2;
+    const x1 = bx + halfW * Math.cos(pa), y1 = by + halfW * Math.sin(pa);
+    const x2 = bx - halfW * Math.cos(pa), y2 = by - halfW * Math.sin(pa);
+    spines.push(
+      `<path d="M${f(x1)},${f(y1)} L${f(tx)},${f(ty)} L${f(x2)},${f(y2)}Z"
+             fill="${i%2===0?spineColor:spineColor2}"
+             stroke="${spineColor}" stroke-width="0.3" stroke-linejoin="round"/>`
+    );
+  }
+
+  // 얼굴 좌표
+  const e1x=63, e1y=97, e2x=80, e2y=93, nx=70, ny=108;
+  let eyes='', mouth='';
+
+  if (face === 'happy') {
+    eyes = `<circle cx="${e1x}" cy="${e1y}" r="4" fill="#2a1a1a"/>
+      <circle cx="${e2x}" cy="${e2y}" r="4" fill="#2a1a1a"/>
+      <circle cx="${e1x+1.2}" cy="${e1y-1.5}" r="1.3" fill="rgba(255,255,255,0.75)"/>
+      <circle cx="${e2x+1.2}" cy="${e2y-1.5}" r="1.3" fill="rgba(255,255,255,0.75)"/>`;
+    mouth = `<path d="M${nx-5},${ny+5} Q${nx},${ny+10} ${nx+5},${ny+5}"
+               stroke="#2a1a1a" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+
+  } else if (face === 'sleepy') {
+    eyes = `<path d="M${e1x-5},${e1y} Q${e1x},${e1y+5} ${e1x+5},${e1y}"
+              stroke="#2a1a1a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M${e2x-5},${e2y} Q${e2x},${e2y+5} ${e2x+5},${e2y}"
+              stroke="#2a1a1a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M${e1x-5},${e1y} Q${e1x},${e1y-2} ${e1x+5},${e1y}"
+              stroke="#2a1a1a" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.4"/>
+      <path d="M${e2x-5},${e2y} Q${e2x},${e2y-2} ${e2x+5},${e2y}"
+              stroke="#2a1a1a" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.4"/>`;
+    mouth = `<path d="M${nx-3},${ny+6} Q${nx},${ny+8} ${nx+3},${ny+6}"
+               stroke="#2a1a1a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+
+  } else if (face === 'sassy') {
+    eyes = `<ellipse cx="${e1x}" cy="${e1y}" rx="5.5" ry="2.8" fill="#2a1a1a"/>
+      <ellipse cx="${e2x}" cy="${e2y}" rx="5.5" ry="2.8" fill="#2a1a1a"/>
+      <ellipse cx="${e1x+1.5}" cy="${e1y-0.8}" rx="1.5" ry="0.9" fill="rgba(255,255,255,0.7)"/>
+      <ellipse cx="${e2x+1.5}" cy="${e2y-0.8}" rx="1.5" ry="0.9" fill="rgba(255,255,255,0.7)"/>`;
+    mouth = `<line x1="${nx-5}" y1="${ny+6}" x2="${nx+5}" y2="${ny+5}"
+               stroke="#2a1a1a" stroke-width="1.8" stroke-linecap="round"/>`;
+
+  } else if (face === 'excited') {
+    const star = (sx,sy,ro,ri) => {
+      let d='';
+      for (let k=0;k<8;k++){
+        const a=(k*Math.PI/4)-Math.PI/2, rr=k%2===0?ro:ri;
+        d+=(k===0?'M':'L')+`${f(sx+rr*Math.cos(a))},${f(sy+rr*Math.sin(a))} `;
+      }
+      return d+'Z';
+    };
+    eyes = `<path d="${star(e1x,e1y,5.5,2.2)}" fill="#2a1a1a"/>
+      <path d="${star(e2x,e2y,5.5,2.2)}" fill="#2a1a1a"/>`;
+    mouth = `<path d="M${nx-7},${ny+4} Q${nx-4},${ny+10} ${nx-1},${ny+4} Q${nx+2},${ny+10} ${nx+5},${ny+4}"
+               stroke="#2a1a1a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+
+  const uid = 'hog_' + Math.random().toString(36).slice(2,7);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" width="200" height="160" style="overflow:visible">
+<defs>
+  <filter id="${uid}_sh" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="rgba(180,100,120,0.22)"/>
+  </filter>
+  <filter id="${uid}_ss" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.12)"/>
+  </filter>
+  <radialGradient id="${uid}_bg" cx="38%" cy="35%" r="65%">
+    <stop offset="0%"   stop-color="${bellyColor}"/>
+    <stop offset="100%" stop-color="${fillColor}"/>
+  </radialGradient>
+  <radialGradient id="${uid}_bl" cx="32%" cy="62%" r="38%">
+    <stop offset="0%"   stop-color="${bellyColor}" stop-opacity="0.9"/>
+    <stop offset="100%" stop-color="${fillColor}"   stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<g filter="url(#${uid}_ss)">${spines.join('')}</g>
+<circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#${uid}_bg)" filter="url(#${uid}_sh)"/>
+<circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#${uid}_bl)"/>
+<ellipse cx="78" cy="62" rx="18" ry="11" fill="rgba(255,255,255,0.22)" transform="rotate(-20,78,62)"/>
+${eyes}
+<ellipse cx="${nx}" cy="${ny}" rx="5" ry="3.5" fill="#2a1a1a"/>
+<ellipse cx="${nx+1.5}" cy="${ny-1}" rx="1.5" ry="1" fill="rgba(255,255,255,0.4)"/>
+${mouth}
+<ellipse cx="${e1x-4}" cy="${e1y+8}" rx="7" ry="4" fill="${spineColor}" opacity="0.22"/>
+<ellipse cx="${e2x+6}" cy="${e2y+8}" rx="7" ry="4" fill="${spineColor}" opacity="0.22"/>
+</svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 토핑 SVG (300×600 좌표계 기준)
+// cx/cy: 맨 위 고슴도치 중심, R: 맨 위 고슴도치 반지름 (SVG 좌표)
+// ═══════════════════════════════════════════════════════════
+function createToppings(toppings, cx, cy, R) {
+  // 결정론적 의사난수 (seed 기반)
+  function rng(seed) {
+    const x = Math.sin(seed * 9301 + 49297) * 233280;
+    return x - Math.floor(x);
+  }
+  const parts = [];
+
+  toppings.forEach(type => {
+    if (type === 'choco') {
+      // 작은 갈색 원 6개, 위쪽 호 분산 배치
+      for (let i = 0; i < 6; i++) {
+        const ang  = (200 + i * 24 + rng(i*3.7)*15) * Math.PI / 180;
+        const dist = R * (0.5 + rng(i*2.1) * 0.38);
+        const px   = cx + dist * Math.cos(ang);
+        const py   = cy + dist * Math.sin(ang);
+        const r    = 4 + rng(i*1.3) * 3;
+        parts.push(`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${r.toFixed(1)}"
+          fill="#5c3317" opacity="0.88"/>`);
+      }
+    }
+
+    if (type === 'sprinkle') {
+      // 컬러 직사각형 10개, 기울여서 배치
+      const cols = ['#FFB6C1','#FFE066','#89CFF0','#B5E5CF','#FFB347','#c8a8e9'];
+      for (let i = 0; i < 10; i++) {
+        const ang  = (200 + i * 15 + rng(i*1.9)*10) * Math.PI / 180;
+        const dist = R * (0.42 + rng(i*3.3) * 0.45);
+        const px   = cx + dist * Math.cos(ang);
+        const py   = cy + dist * Math.sin(ang);
+        const rot  = rng(i*1.7)*180 - 90;
+        const col  = cols[i % cols.length];
+        parts.push(`<rect x="${(px-6).toFixed(1)}" y="${(py-2).toFixed(1)}"
+          width="12" height="4" rx="2" fill="${col}"
+          transform="rotate(${rot.toFixed(0)},${px.toFixed(1)},${py.toFixed(1)})" opacity="0.9"/>`);
+      }
+    }
+
+    if (type === 'berry') {
+      // 체리: 빨간 원 2개 + 초록 꼭지, 정중앙 최상단
+      const stemX = cx, stemY = cy - R;
+      parts.push(`
+<line x1="${stemX}" y1="${stemY}" x2="${(stemX-10).toFixed(1)}" y2="${(stemY-24).toFixed(1)}"
+      stroke="#2d6a2d" stroke-width="3" stroke-linecap="round"/>
+<line x1="${stemX}" y1="${stemY}" x2="${(stemX+8).toFixed(1)}"  y2="${(stemY-20).toFixed(1)}"
+      stroke="#2d6a2d" stroke-width="3" stroke-linecap="round"/>
+<circle cx="${(stemX-10).toFixed(1)}" cy="${(stemY-34).toFixed(1)}" r="11" fill="#e63946"/>
+<circle cx="${(stemX+8).toFixed(1)}"  cy="${(stemY-30).toFixed(1)}" r="10" fill="#c1121f"/>
+<circle cx="${(stemX-13).toFixed(1)}" cy="${(stemY-37).toFixed(1)}" r="3.5" fill="rgba(255,255,255,0.45)"/>
+<circle cx="${(stemX+5).toFixed(1)}"  cy="${(stemY-33).toFixed(1)}" r="3" fill="rgba(255,255,255,0.35)"/>`
+      );
+    }
+
+    if (type === 'cookie') {
+      // 웨하스 스틱 2개, 양옆에 꽂은 듯
+      const sy = cy - R * 0.25;
+      [-1, 1].forEach((side, si) => {
+        const bx  = cx + side * R * 0.82;
+        const rot = side * 32;
+        parts.push(`<g transform="rotate(${rot},${bx.toFixed(1)},${sy.toFixed(1)})">
+  <rect x="${(bx-5.5).toFixed(1)}" y="${(sy-30).toFixed(1)}" width="11" height="42" rx="3"
+        fill="#f5ddb8" stroke="#c8a870" stroke-width="1.2"/>
+  ${[-14,-4,6,16].map(dy=>
+    `<line x1="${(bx-5.5).toFixed(1)}" y1="${(sy+dy).toFixed(1)}"
+           x2="${(bx+5.5).toFixed(1)}" y2="${(sy+dy).toFixed(1)}"
+           stroke="#c8a870" stroke-width="0.8"/>`
+  ).join('')}
+</g>`);
+      });
+    }
+
+    if (type === 'nuts') {
+      // 작은 타원 견과류 5개
+      for (let i = 0; i < 5; i++) {
+        const ang  = (205 + i * 28 + rng(i*4.1)*12) * Math.PI / 180;
+        const dist = R * (0.44 + rng(i*2.7) * 0.4);
+        const px   = cx + dist * Math.cos(ang);
+        const py   = cy + dist * Math.sin(ang);
+        const rot  = rng(i*2.3)*120;
+        parts.push(`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="6" ry="3.5"
+          fill="#8B6914" transform="rotate(${rot.toFixed(0)},${px.toFixed(1)},${py.toFixed(1)})"
+          opacity="0.88"/>`);
+      }
+    }
+
+    if (type === 'whip') {
+      // 휘핑크림 소용돌이
+      const wx = cx, wy = cy - R - 2;
+      parts.push(`
+<path d="M${(wx-20).toFixed(1)},${(wy+10).toFixed(1)}
+         Q${(wx-24).toFixed(1)},${(wy-4).toFixed(1)} ${(wx-10).toFixed(1)},${(wy-12).toFixed(1)}
+         Q${wx},${(wy-22).toFixed(1)} ${(wx+10).toFixed(1)},${(wy-12).toFixed(1)}
+         Q${(wx+24).toFixed(1)},${(wy-4).toFixed(1)} ${(wx+20).toFixed(1)},${(wy+10).toFixed(1)}"
+      fill="none" stroke="white" stroke-width="9" stroke-linecap="round" opacity="0.88"/>
+<path d="M${(wx-20).toFixed(1)},${(wy+10).toFixed(1)}
+         Q${(wx-24).toFixed(1)},${(wy-4).toFixed(1)} ${(wx-10).toFixed(1)},${(wy-12).toFixed(1)}
+         Q${wx},${(wy-22).toFixed(1)} ${(wx+10).toFixed(1)},${(wy-12).toFixed(1)}
+         Q${(wx+24).toFixed(1)},${(wy-4).toFixed(1)} ${(wx+20).toFixed(1)},${(wy+10).toFixed(1)}"
+      fill="none" stroke="#f0ecff" stroke-width="5" stroke-linecap="round"/>
+<ellipse cx="${wx}" cy="${(wy-14).toFixed(1)}" rx="7" ry="4.5" fill="white" opacity="0.9"/>
+<ellipse cx="${wx}" cy="${(wy-18).toFixed(1)}" rx="4" ry="3" fill="white" opacity="0.6"/>`);
+    }
+  });
+
+  return parts.join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════
+// 콘 SVG
+// ═══════════════════════════════════════════════════════════
+function createCone(type) {
+  const topY=60, botY=190, topW=130, tipX=100;
+  const tl=tipX-topW/2, tr=tipX+topW/2;
+
+  if (type === 'waffle') {
+    const lines=[];
+    for (let i=1;i<7;i++){
+      const t=i/7, y=topY+t*(botY-topY);
+      const lx=tl+t*(tipX-tl), rx=tr-t*(tipX-tr);
+      lines.push(`<line x1="${lx.toFixed(1)}" y1="${y.toFixed(1)}" x2="${rx.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#c8874a" stroke-width="1.2" opacity="0.7"/>`);
+    }
+    for (let i=-3;i<=3;i++){
+      const ox=tipX+i*20;
+      lines.push(`<line x1="${ox}" y1="${topY}" x2="${((ox+tipX)/2).toFixed(1)}" y2="${botY}" stroke="#c8874a" stroke-width="1" opacity="0.5"/>`);
+    }
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="160" height="160">
+<defs>
+  <linearGradient id="wf_g" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#e8a060"/>
+    <stop offset="50%"  stop-color="#f5c080"/>
+    <stop offset="100%" stop-color="#d08840"/>
+  </linearGradient>
+  <clipPath id="wf_c"><polygon points="${tl},${topY} ${tr},${topY} ${tipX},${botY}"/></clipPath>
+</defs>
+<polygon points="${tl},${topY} ${tr},${topY} ${tipX},${botY}" fill="url(#wf_g)" stroke="#c07030" stroke-width="1.5" stroke-linejoin="round"/>
+<g clip-path="url(#wf_c)" opacity="0.8">${lines.join('')}</g>
+<polygon points="${tl},${topY} ${tr},${topY} ${tipX},${botY}" fill="none" stroke="#b86828" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="${tl+8},${topY+4} ${tl+28},${topY+4} ${tl+14},${topY+36}" fill="rgba(255,255,255,0.18)"/>
+</svg>`;
+
+  } else if (type === 'sugar') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="160" height="160">
+<defs>
+  <linearGradient id="sg_g" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#f5ddb8"/>
+    <stop offset="45%"  stop-color="#fdefd8"/>
+    <stop offset="100%" stop-color="#e8c898"/>
+  </linearGradient>
+</defs>
+<polygon points="${tl},${topY} ${tr},${topY} ${tipX},${botY}" fill="url(#sg_g)" stroke="#d4aa70" stroke-width="1.5" stroke-linejoin="round"/>
+<line x1="${tipX-18}" y1="${topY+6}" x2="${tipX-4}" y2="${botY-10}" stroke="rgba(180,130,80,0.25)" stroke-width="2" stroke-linecap="round"/>
+<line x1="${tipX+8}"  y1="${topY+6}" x2="${tipX+2}" y2="${botY-20}" stroke="rgba(180,130,80,0.18)" stroke-width="1.5" stroke-linecap="round"/>
+<polygon points="${tl+6},${topY+4} ${tl+30},${topY+4} ${tl+16},${topY+40}" fill="rgba(255,255,255,0.28)"/>
+<polygon points="${tl},${topY} ${tr},${topY} ${tipX},${botY}" fill="none" stroke="#c49860" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>`;
+
+  } else if (type === 'cup') {
+    const cTW=140, cBW=110, cTop=70, cBot=185;
+    const ctl=tipX-cTW/2, ctr=tipX+cTW/2, cbl=tipX-cBW/2, cbr=tipX+cBW/2;
+    const stripes=[];
+    for(let i=1;i<5;i++){
+      const t=i/5, y=cTop+t*(cBot-cTop);
+      const lx=ctl+t*(cbl-ctl), rx=ctr+t*(cbr-ctr);
+      stripes.push(`<line x1="${lx.toFixed(1)}" y1="${y.toFixed(1)}" x2="${rx.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.55)" stroke-width="5"/>`);
+    }
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="160" height="160">
+<defs>
+  <linearGradient id="cp_g" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#a8d8ea"/>
+    <stop offset="50%"  stop-color="#c8ecf8"/>
+    <stop offset="100%" stop-color="#88c0d8"/>
+  </linearGradient>
+  <clipPath id="cp_c"><polygon points="${ctl},${cTop} ${ctr},${cTop} ${cbr},${cBot} ${cbl},${cBot}"/></clipPath>
+</defs>
+<polygon points="${ctl},${cTop} ${ctr},${cTop} ${cbr},${cBot} ${cbl},${cBot}" fill="url(#cp_g)" stroke="#70a8c0" stroke-width="1.5" stroke-linejoin="round"/>
+<g clip-path="url(#cp_c)">${stripes.join('')}</g>
+<rect x="${ctl}" y="${cTop}" width="${cTW}" height="10" rx="3" fill="#88c0d8" stroke="#60a0b8" stroke-width="1"/>
+<polygon points="${ctl+6},${cTop+12} ${ctl+28},${cTop+12} ${ctl+22},${cTop+60}" fill="rgba(255,255,255,0.25)"/>
+<ellipse cx="${tipX}" cy="${cBot}" rx="${cBW/2}" ry="5" fill="#70a8c0" stroke="#60a0b8" stroke-width="1"/>
+</svg>`;
+
+  } else { // cupcake
+    const ckTW=134, ckBW=100, ckTop=68, ckBot=185;
+    const cktl=tipX-ckTW/2, cktr=tipX+ckTW/2, ckbl=tipX-ckBW/2, ckbr=tipX+ckBW/2;
+    const PLEAT=10;
+    let pp=`M${cktl},${ckTop}`;
+    const pw=ckTW/PLEAT;
+    for(let i=0;i<PLEAT;i++) pp+=` Q${cktl+(i+0.5)*pw},${ckTop+10} ${cktl+(i+1)*pw},${ckTop}`;
+    pp+=` L${cktr},${ckTop} L${ckbr},${ckBot} L${ckbl},${ckBot} Z`;
+    const folds=[];
+    for(let i=1;i<PLEAT;i++){
+      const t=i/PLEAT, tx=cktl+t*ckTW, bx=ckbl+t*ckBW;
+      folds.push(`<line x1="${tx.toFixed(1)}" y1="${ckTop}" x2="${bx.toFixed(1)}" y2="${ckBot}" stroke="rgba(160,80,120,0.2)" stroke-width="1"/>`);
+    }
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="160" height="160">
+<defs>
+  <linearGradient id="ck_g" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#f8c8d8"/>
+    <stop offset="50%"  stop-color="#fce0ea"/>
+    <stop offset="100%" stop-color="#e8a8c0"/>
+  </linearGradient>
+  <clipPath id="ck_c"><polygon points="${cktl},${ckTop} ${cktr},${ckTop} ${ckbr},${ckBot} ${ckbl},${ckBot}"/></clipPath>
+</defs>
+<path d="${pp}" fill="url(#ck_g)" stroke="#d090b0" stroke-width="1.5"/>
+<g clip-path="url(#ck_c)">${folds.join('')}</g>
+<polygon points="${cktl+6},${ckTop+10} ${cktl+28},${ckTop+10} ${cktl+18},${ckTop+50}" fill="rgba(255,255,255,0.25)"/>
+<ellipse cx="${tipX}" cy="${ckBot}" rx="${ckBW/2}" ry="5" fill="#d090b0" stroke="#c070a0" stroke-width="1"/>
+</svg>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 아이스크림 전체 렌더링
+// ═══════════════════════════════════════════════════════════
+function renderIceCream(st) {
+  const FLAVOR_COLORS = {
+    vanilla:    '#FFF4D6',
+    chocolate:  '#8B5A3C',
+    strawberry: '#FFB6C1',
+    matcha:     '#B5E5CF',
+    blueberry:  '#C8A8E9',
+    mango:      '#FFD97D',
+  };
+
+  const LAYERS_CFG = [
+    { cy: 330, scale: 1.00 },
+    { cy: 252, scale: 0.90 },
+    { cy: 182, scale: 0.80 },
+    { cy: 120, scale: 0.72 },
+  ];
+
+  const coneScale = 1.2;
+  const coneTransY = 350;
+
+  // 고슴도치 레이어
+  const hogLayers = st.flavors.slice(0, st.layers).map((flavorId, i) => {
+    const cfg   = LAYERS_CFG[i];
+    const color = FLAVOR_COLORS[flavorId] || '#FFB6C1';
+    const s     = cfg.scale;
+    const tx    = 150 - 100 * s;
+    const ty    = cfg.cy - 120 * s;
+    return `<g class="hog-layer-${i}" transform="translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${s})">
+  ${createHedgehog(color, st.face || 'happy').replace(/<svg[^>]*>|<\/svg>/g,'')}
+</g>`;
+  });
+
+  // 맨 위 고슴도치 위치 → 토핑 좌표 계산
+  const topCfg = LAYERS_CFG[st.layers - 1];
+  const topCX  = 150;
+  const topCY  = topCfg.cy;
+  const topR   = 78 * topCfg.scale;
+  const toppingsSVG = st.toppings.length
+    ? createToppings(st.toppings, topCX, topCY, topR)
+    : '';
+
+  // 콘 내부 SVG
+  const coneInner = createCone(st.cone || 'waffle')
+    .replace(/<svg[^>]*>|<\/svg>/g, '');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 600" width="240" height="480">
+${hogLayers.join('\n')}
+<!-- 토핑 -->
+${toppingsSVG}
+<!-- 콘 -->
+<g transform="translate(${(150 - 100 * coneScale).toFixed(1)},${coneTransY}) scale(${coneScale})">
+  ${coneInner}
+</g>
+</svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 전역 상태
+// ═══════════════════════════════════════════════════════════
+const state = {
+  cone: null, layers: 0, flavors: [],
+  face: null, toppings: [], name: ''
+};
+
+const FLAVORS = [
+  { id:'vanilla',    label:'바닐라',   emoji:'🍦' },
+  { id:'chocolate',  label:'초콜릿',   emoji:'🍫' },
+  { id:'strawberry', label:'딸기',     emoji:'🍓' },
+  { id:'matcha',     label:'말차',     emoji:'🍵' },
+  { id:'blueberry',  label:'블루베리', emoji:'🫐' },
+  { id:'mango',      label:'망고',     emoji:'🥭' },
+];
+const CONE_LABELS    = { waffle:'와플콘', cup:'컵', sugar:'슈가콘', cupcake:'컵케이크' };
+const CONE_EMOJI     = { waffle:'🧇', cup:'🥤', sugar:'🍦', cupcake:'🧁' };
+const FACE_LABELS    = { happy:'해피 😊', sleepy:'졸려 😴', sassy:'새침 😏', excited:'신남 🤩' };
+const TOPPING_LABELS = {
+  choco:'🍫 초코칩', sprinkle:'🌈 스프링클', nuts:'🥜 견과류',
+  cookie:'🍪 웨하스', berry:'🍒 체리', whip:'☁️ 휘핑'
+};
+
+// ── 점 진행바 ─────────────────────────────────────────────
+let currentStep = 1;
+
+function updateDots(step) {
+  document.querySelectorAll('.dot').forEach((dot, i) => {
+    const n = i + 1;
+    dot.classList.toggle('active', n === step);
+    dot.classList.toggle('done',   n < step);
+  });
+}
+
+// ── 화면 전환 ─────────────────────────────────────────────
+function showStep(n) {
+  const prevEl = document.getElementById(`step${currentStep}`);
+  const nextEl = document.getElementById(`step${n}`);
+  prevEl.classList.remove('visible');
+  setTimeout(() => {
+    prevEl.classList.remove('active');
+    nextEl.classList.add('active');
+    requestAnimationFrame(() => requestAnimationFrame(() => nextEl.classList.add('visible')));
+  }, 300);
+  currentStep = n;
+  updateDots(n);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (n === 3) buildFlavorSlots();
+  if (n === 7) buildSummary();
+}
+
+// ── 단일 선택 헬퍼 ───────────────────────────────────────
+function bindSingleSelect(groupId, selector, onSelect) {
+  document.getElementById(groupId).addEventListener('click', e => {
+    const btn = e.target.closest(selector);
+    if (!btn) return;
+    [...document.getElementById(groupId).querySelectorAll(selector)]
+      .forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    onSelect(btn.dataset.value);
+  });
+}
+
+// ── STEP 1: 콘 ───────────────────────────────────────────
+bindSingleSelect('cone-options', '.option-btn', val => {
+  state.cone = val;
+  document.getElementById('next1').disabled = false;
+});
+document.getElementById('next1').addEventListener('click', () => showStep(2));
+
+// ── STEP 2: 레이어 수 ─────────────────────────────────────
+bindSingleSelect('layer-buttons', '.layer-btn', val => {
+  state.layers = parseInt(val);
+  state.flavors = new Array(state.layers).fill(null);
+  document.getElementById('next2').disabled = false;
+});
+document.getElementById('prev2').addEventListener('click', () => showStep(1));
+document.getElementById('next2').addEventListener('click', () => showStep(3));
+
+// ── STEP 3: 맛 선택 ──────────────────────────────────────
+function buildFlavorSlots() {
+  const container = document.getElementById('flavor-slots');
+  container.innerHTML = '';
+  for (let i = 0; i < state.layers; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'flavor-slot';
+    slot.innerHTML = `
+      <div class="flavor-slot-label">
+        <span class="layer-badge">${i+1}층</span> 맛을 골라주세요
+      </div>
+      <div class="option-group" id="fg${i}">
+        ${FLAVORS.map(fl=>`
+          <button class="option-btn${state.flavors[i]===fl.id?' selected':''}"
+                  data-value="${fl.id}" data-layer="${i}">
+            <span class="btn-emoji">${fl.emoji}</span>${fl.label}
+          </button>`).join('')}
+      </div>`;
+    container.appendChild(slot);
+
+    document.getElementById(`fg${i}`).addEventListener('click', e => {
+      const btn = e.target.closest('.option-btn');
+      if (!btn) return;
+      const layer = parseInt(btn.dataset.layer);
+      [...document.getElementById(`fg${layer}`).querySelectorAll('.option-btn')]
+        .forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      state.flavors[layer] = btn.dataset.value;
+      // 모든 레이어 선택 완료 시에만 활성화
+      document.getElementById('next3').disabled =
+        state.flavors.length !== state.layers || state.flavors.some(f => f === null);
+    });
+  }
+  // 이미 선택된 경우 버튼 상태 초기화
+  document.getElementById('next3').disabled =
+    state.flavors.length !== state.layers || state.flavors.some(f => f === null);
+}
+document.getElementById('prev3').addEventListener('click', () => showStep(2));
+document.getElementById('next3').addEventListener('click', () => showStep(4));
+
+// ── STEP 4: 얼굴 ──────────────────────────────────────────
+bindSingleSelect('face-options', '.option-btn', val => {
+  state.face = val;
+  document.getElementById('next4').disabled = false;
+});
+document.getElementById('prev4').addEventListener('click', () => showStep(3));
+document.getElementById('next4').addEventListener('click', () => showStep(5));
+
+// ── STEP 5: 토핑 (복수 선택) ──────────────────────────────
+document.getElementById('topping-options').addEventListener('click', e => {
+  const btn = e.target.closest('.option-btn');
+  if (!btn) return;
+  const val = btn.dataset.value;
+  if (btn.classList.contains('selected')) {
+    btn.classList.remove('selected');
+    state.toppings = state.toppings.filter(t => t !== val);
+  } else {
+    btn.classList.add('selected');
+    state.toppings.push(val);
+  }
+});
+document.getElementById('prev5').addEventListener('click', () => showStep(4));
+document.getElementById('next5').addEventListener('click', () => showStep(6));
+
+// ── STEP 6: 이름 ──────────────────────────────────────────
+const nameInput = document.getElementById('name-input');
+nameInput.addEventListener('input', () => {
+  state.name = nameInput.value.trim();
+  document.getElementById('next6').disabled = (state.name.length === 0);
+});
+document.getElementById('prev6').addEventListener('click', () => showStep(5));
+document.getElementById('next6').addEventListener('click', () => showStep(7));
+
+// ── STEP 7: 완성 화면 ─────────────────────────────────────
+function buildSummary() {
+  // 아이스크림 SVG
+  document.getElementById('hedgehog-preview').innerHTML = renderIceCream(state);
+
+  // 이름 표시
+  document.getElementById('icecream-name-display').textContent =
+    state.name ? `✨ ${state.name} ✨` : '';
+
+  // 요약 칩
+  const flavorHtml = state.flavors.map(fid => {
+    const info = FLAVORS.find(x => x.id === fid);
+    return `<span class="summary-chip">${info ? info.emoji+' '+info.label : fid}</span>`;
+  }).join('');
+  const toppingHtml = state.toppings.length
+    ? state.toppings.map(t=>`<span class="summary-chip">${TOPPING_LABELS[t]}</span>`).join('')
+    : '<span style="color:#ccc;font-family:sans-serif;font-size:13px">없음</span>';
+
+  document.getElementById('s-cone').innerHTML =
+    `<span class="summary-chip">${CONE_EMOJI[state.cone]} ${CONE_LABELS[state.cone]}</span>`;
+  document.getElementById('s-layers').textContent  = `${state.layers}층`;
+  document.getElementById('s-flavors').innerHTML   = flavorHtml;
+  document.getElementById('s-face').textContent    = FACE_LABELS[state.face] ?? '-';
+  document.getElementById('s-toppings').innerHTML  = toppingHtml;
+}
+
+// ── 이미지 저장 (SVG → Canvas → PNG) ─────────────────────
+document.getElementById('btn-save').addEventListener('click', async function() {
+  const svgEl = document.querySelector('#hedgehog-preview svg');
+  if (!svgEl) return;
+
+  const btn = this;
+  btn.textContent = '저장 중...';
+  btn.classList.add('saving');
+
+  try {
+    // 내보낼 SVG 생성 (배경 + 이름 텍스트 포함)
+    const W = 300, H = 660;
+    const iceSVG = renderIceCream(state)
+      .replace(/width="240" height="480"/, `width="${W}" height="${H}"`)
+      .replace(/viewBox="0 0 300 600"/, `viewBox="0 0 300 600"`);
+
+    // 배경 rect + 이름 text를 삽입한 export 전용 SVG
+    const exportSVG = iceSVG.replace(
+      '<svg xmlns="http://www.w3.org/2000/svg"',
+      `<svg xmlns="http://www.w3.org/2000/svg" style="background:#FFF8F0"`
+    ).replace(
+      '</svg>',
+      `<rect width="${W}" height="${H}" fill="#FFF8F0" rx="0" opacity="0.01"/>
+<text x="${W/2}" y="${H-22}" text-anchor="middle"
+      font-family="'Jua',sans-serif" font-size="22" fill="#c0495e" opacity="0.9">
+  ${state.name ? '✨ '+state.name+' ✨' : ''}
+</text>
+</svg>`
+    );
+
+    const blob = new Blob([exportSVG], { type:'image/svg+xml;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+
+    const img = new Image();
+    img.onload = () => {
+      const SCALE = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width  = W * SCALE;
+      canvas.height = H * SCALE;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#FFF8F0';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(SCALE, SCALE);
+      ctx.drawImage(img, 0, 0, W, H);
+      URL.revokeObjectURL(url);
+
+      const link = document.createElement('a');
+      link.download = `${state.name || '고슴도치아이스크림'}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      btn.textContent = '📷 이미지 저장';
+      btn.classList.remove('saving');
+    };
+    img.onerror = () => {
+      alert('저장에 실패했어요. 다시 시도해 주세요.');
+      btn.textContent = '📷 이미지 저장';
+      btn.classList.remove('saving');
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  } catch(e) {
+    alert('저장에 실패했어요.');
+    btn.textContent = '📷 이미지 저장';
+    btn.classList.remove('saving');
+  }
+});
+
+// ── 이전 / 처음부터 다시 ─────────────────────────────────
+document.getElementById('prev7').addEventListener('click', () => showStep(6));
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+  // state 초기화
+  state.cone = null; state.layers = 0; state.flavors = [];
+  state.face = null; state.toppings = []; state.name = '';
+  // UI 초기화
+  document.querySelectorAll('.option-btn, .layer-btn')
+    .forEach(b => b.classList.remove('selected'));
+  nameInput.value = '';
+  ['next1','next2','next4','next6'].forEach(id =>
+    document.getElementById(id).disabled = true
+  );
+  showStep(1);
+});
+
+// ── 초기화 ────────────────────────────────────────────────
+(function init() {
+  updateDots(1);
+  const first = document.getElementById('step1');
+  first.classList.add('active');
+  requestAnimationFrame(() => requestAnimationFrame(() => first.classList.add('visible')));
+})();
+</script>
+</body>
+</html>
