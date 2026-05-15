@@ -382,6 +382,63 @@ function drawGuideLines(ctx) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Web Audio API — 효과음
+// ═══════════════════════════════════════════════════════════
+let audioCtx = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+// 브라우저 자동재생 정책: 첫 인터랙션에서만 초기화
+document.addEventListener('mousedown', initAudio, { once: true });
+document.addEventListener('touchstart', initAudio, { once: true });
+
+// "퐁" — 떨어뜨리는 순간
+function playDropSound() {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const now  = audioCtx.currentTime;
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(800, now);
+  osc.frequency.exponentialRampToValueAtTime(400, now + 0.10);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + 0.15);
+}
+
+// "톡" — 충돌 시 (디바운싱: 30ms 이내 중복 무시)
+let _lastCollisionTs = 0;
+function playCollisionSound(intensity = 1) {
+  const now = performance.now();
+  if (now - _lastCollisionTs < 30) return;
+  _lastCollisionTs = now;
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const t        = audioCtx.currentTime;
+  const osc      = audioCtx.createOscillator();
+  const gain     = audioCtx.createGain();
+  const baseFreq = 280 + Math.random() * 120;
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(baseFreq, t);
+  osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, t + 0.06);
+  const vol = Math.min(0.05 * intensity, 0.06);
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(vol, t + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t + 0.09);
+}
+
+// ═══════════════════════════════════════════════════════════
 // 드롭 → Body 생성
 // ═══════════════════════════════════════════════════════════
 let firstDrop = true;
@@ -407,6 +464,8 @@ function dropHedgehog(wx, wy) {
   // image: 이 hedgehog에 고정된 이미지 (드롭 순간 확정)
   hedgehogs.push({ body, stableTimer: 0, counted: false, isFalling: true, image: currentWaitingImage });
   latestBody = body;
+
+  playDropSound();   // "퐁"
 
   // 1.5초 후 또는 sleeping 감지 시 isFalling 해제
   // (setTimeout은 최대 유효 시간 보장용 — sleeping 감지는 afterRender에서 처리)
@@ -515,16 +574,25 @@ window.addEventListener('touchend', e => {
 // ═══════════════════════════════════════════════════════════
 Events.on(engine, 'collisionStart', event => {
   for (const { bodyA, bodyB } of event.pairs) {
-    if (bodyA !== latestBody && bodyB !== latestBody) continue;
-    const cx = (bodyA.position.x + bodyB.position.x) / 2;
-    const cy = (bodyA.position.y + bodyB.position.y) / 2;
-    spawnPulse(cx, cy);
-    const other = bodyA === latestBody ? bodyB : bodyA;
-    if (!other.isStatic) {
-      Body.applyForce(other, other.position, {
-        x: (Math.random() - 0.5) * 0.002,
-        y: (Math.random() - 0.5) * 0.001,
-      });
+    // ── 충격파 + 미세 흔들림 (latestBody 충돌만) ──────────
+    if (bodyA === latestBody || bodyB === latestBody) {
+      const cx = (bodyA.position.x + bodyB.position.x) / 2;
+      const cy = (bodyA.position.y + bodyB.position.y) / 2;
+      spawnPulse(cx, cy);
+      const other = bodyA === latestBody ? bodyB : bodyA;
+      if (!other.isStatic) {
+        Body.applyForce(other, other.position, {
+          x: (Math.random() - 0.5) * 0.002,
+          y: (Math.random() - 0.5) * 0.001,
+        });
+      }
+    }
+
+    // ── 충돌 효과음 "톡" (모든 충돌, 속도 임계값 이상만) ──
+    const relV  = Matter.Vector.sub(bodyA.velocity, bodyB.velocity);
+    const speed = Matter.Vector.magnitude(relV);
+    if (speed > 1.5) {
+      playCollisionSound(Math.min(speed / 5, 1));
     }
   }
 });
