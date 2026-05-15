@@ -127,8 +127,9 @@ const IDLE_PERIOD_H = 3000;  // 좌우 주기 ms
 
 const STABLE_SPD = 0.10;     // 안정 판정 속도 임계값
 const STABLE_MS  = 500;      // 안정 유지 시간
-const CAM_LERP   = 0.05;     // 카메라 보간 계수
-const CAM_PAD    = H * 0.40; // 최고점을 화면 40% 지점에 배치
+const CAM_LERP     = 0.02;       // 카메라 보간 계수 (낮을수록 부드러움)
+const CAM_PAD      = H * 0.40;   // 최고점을 화면 40% 지점에 배치
+const CAM_DEADZONE = H * 0.30;   // 최고점이 이 이내면 카메라 고정 (출렁임 방지)
 
 // ═══════════════════════════════════════════════════════════
 // Matter.js 셋업 (enableSleeping → 많이 쌓여도 성능 유지)
@@ -354,8 +355,16 @@ function dropHedgehog(wx, wy) {
   Body.setVelocity(body, { x: 0, y: 1 });
 
   World.add(world, body);
-  hedgehogs.push({ body, stableTimer: 0, counted: false });
+  // isFalling=true인 동안 카메라 계산 대상에서 제외
+  hedgehogs.push({ body, stableTimer: 0, counted: false, isFalling: true });
   latestBody = body;
+
+  // 1.5초 후 또는 sleeping 감지 시 isFalling 해제
+  // (setTimeout은 최대 유효 시간 보장용 — sleeping 감지는 afterRender에서 처리)
+  setTimeout(() => {
+    const entry = hedgehogs.find(h => h.body === body);
+    if (entry) entry.isFalling = false;
+  }, 1500);
 
   isDragging = false;
   isDropped  = true;
@@ -515,15 +524,44 @@ Events.on(render, 'afterRender', () => {
   if (!isDropped && !isDragging) idleTime += dt;
 
   // ── 카메라 업데이트 ──────────────────────────────────────
-  if (hedgehogs.length > 0) {
-    let highestY = H;
-    for (const { body } of hedgehogs) {
-      if (body.position.y < highestY) highestY = body.position.y;
+  // 규칙:
+  //  1. isFalling=true 인 body는 제외 (떨어지는 중 출렁임 방지)
+  //  2. sleeping 상태이거나 거의 정지한 body만 후보
+  //  3. 카메라는 위로만 이동 (camTargetY는 더 작은 값으로만 갱신)
+  //  4. 데드존: 최고점이 화면 상단 CAM_DEADZONE 이내면 이동 안 함
+
+  // isFalling 자동 해제: sleeping 감지
+  for (const entry of hedgehogs) {
+    if (entry.isFalling && entry.body.isSleeping) {
+      entry.isFalling = false;
     }
-    camTargetY = Math.min(0, highestY - CAM_PAD);
-  } else {
-    camTargetY = 0;
   }
+
+  // 정지 hedgehog 중 가장 높은 y 탐색
+  let highestStableY = H;
+  let hasStable = false;
+  for (const { body, isFalling } of hedgehogs) {
+    if (isFalling) continue;
+    const vx = Math.abs(body.velocity.x);
+    const vy = Math.abs(body.velocity.y);
+    const isStill = body.isSleeping || (vx < 0.15 && vy < 0.15);
+    if (!isStill) continue;
+    if (body.position.y < highestStableY) {
+      highestStableY = body.position.y;
+      hasStable = true;
+    }
+  }
+
+  if (hasStable) {
+    // 최고점이 화면 상단 CAM_DEADZONE 지점을 넘어섰을 때만 카메라 이동
+    const screenY = highestStableY - camY;          // 현재 화면에서의 y
+    if (screenY < CAM_DEADZONE) {
+      const newTarget = Math.min(0, highestStableY - CAM_PAD);
+      // 위로만 이동: 더 작은 값(더 위)일 때만 갱신
+      if (newTarget < camTargetY) camTargetY = newTarget;
+    }
+  }
+
   camY += (camTargetY - camY) * CAM_LERP;
 
   // ── 안정도 체크 → 카운터 ────────────────────────────────
